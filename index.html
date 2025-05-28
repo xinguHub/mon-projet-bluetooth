@@ -37,9 +37,9 @@
 
   <button onclick="connect()">🔌 Connecter ESP32</button>
 
-  <h2>Slider (250–2500)</h2>
-  <p>Valeur : <span id="sliderValue">1400</span></p>
-  <input type="range" id="slider" min="250" max="2500" step="1" value="1400"
+  <h2>Slider (250–2500 ms)</h2>
+  <p>Valeur : <span id="sliderValue">250</span> ms</p>
+  <input type="range" id="slider" min="250" max="2500" step="50" value="250"
          oninput="updateSlider(this.value)" onchange="sendSlider(this.value)">
 
   <h2>Boutons ON/OFF (somme 0 à 7)</h2>
@@ -84,37 +84,4 @@ async function sendSlider(val) {
   if (!textCharac) return;
   try {
     const encoder = new TextEncoder();
-    await textCharac.writeValue(encoder.encode(val.toString()));
-    document.getElementById("status").textContent = "Slider envoyé : " + val;
-  } catch (error) {
-    alert("Erreur slider : " + error);
-  }
-}
-
-function toggle(bit) {
-  const btn = document.getElementById("btn" + Math.log2(bit) + 1);
-  const isActive = btn.classList.toggle("active");
-
-  if (isActive) {
-    state |= bit;
-  } else {
-    state &= ~bit;
-  }
-
-  sendButtons(state);
-}
-
-async function sendButtons(val) {
-  if (!binaryCharac) return;
-  try {
-    const data = new Uint8Array([val]);
-    await binaryCharac.writeValue(data);
-    document.getElementById("status").textContent = "Boutons : " + val;
-  } catch (error) {
-    alert("Erreur boutons : " + error);
-  }
-}
-</script>
-
-</body>
-</html>
+    await textCharac.writ
