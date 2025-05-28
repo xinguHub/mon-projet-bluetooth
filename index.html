@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Slider ESP32 BLE</title>
+  <title>Contrôle ESP32 BLE</title>
   <style>
     body {
       font-family: sans-serif;
@@ -14,9 +14,16 @@
     }
     button {
       font-size: 1.2em;
-      margin: 1em;
+      margin: 0.5em;
       padding: 0.5em 1.2em;
       border-radius: 8px;
+    }
+    .toggle {
+      background-color: #eee;
+    }
+    .toggle.active {
+      background-color: #4CAF50;
+      color: white;
     }
     #status {
       margin-top: 1em;
@@ -26,17 +33,29 @@
 </head>
 <body>
 
-  <h1>Contrôle ESP32 - Slider</h1>
+  <h1>Contrôle ESP32 via BLE</h1>
 
   <button onclick="connect()">🔌 Connecter ESP32</button>
 
+  <h2>Slider (250–5000)</h2>
   <p>Valeur : <span id="sliderValue">250</span></p>
-  <input type="range" id="slider" min="250" max="5000" step="1" value="250" oninput="updateValue(this.value)" onchange="sendSliderValue(this.value)">
+  <input type="range" id="slider" min="250" max="5000" step="1" value="250"
+         oninput="updateSlider(this.value)" onchange="sendSlider(this.value)">
+
+  <h2>Boutons ON/OFF (somme 0 à 7)</h2>
+  <div>
+    <button class="toggle" id="btn1" onclick="toggle(1)">Bouton 1</button>
+    <button class="toggle" id="btn2" onclick="toggle(2)">Bouton 2</button>
+    <button class="toggle" id="btn3" onclick="toggle(4)">Bouton 3</button>
+  </div>
 
   <p id="status">État : Déconnecté</p>
 
 <script>
-let device, characteristic;
+let device;
+let textCharac = null;
+let binaryCharac = null;
+let state = 0;
 
 async function connect() {
   try {
@@ -45,29 +64,54 @@ async function connect() {
     });
     const server = await device.gatt.connect();
     const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
-    characteristic = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-abcdef123456');
+
+    // Caractéristique pour le texte (slider)
+    textCharac = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-abcdef123456');
+    // Caractéristique pour les boutons (0 à 7)
+    binaryCharac = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-1234567890ab');
+
     document.getElementById("status").textContent = "État : Connecté à ESP32 ✅";
   } catch (error) {
     alert("Erreur de connexion : " + error);
   }
 }
 
-function updateValue(val) {
+function updateSlider(val) {
   document.getElementById("sliderValue").textContent = val;
 }
 
-async function sendSliderValue(val) {
-  if (!characteristic) {
-    alert("Veuillez vous connecter d'abord.");
-    return;
-  }
+async function sendSlider(val) {
+  if (!textCharac) return;
   try {
     const encoder = new TextEncoder();
-    const data = encoder.encode(val.toString());
-    await characteristic.writeValue(data);
-    document.getElementById("status").textContent = "Valeur envoyée : " + val;
+    await textCharac.writeValue(encoder.encode(val.toString()));
+    document.getElementById("status").textContent = "Slider envoyé : " + val;
   } catch (error) {
-    alert("Erreur à l'envoi : " + error);
+    alert("Erreur slider : " + error);
+  }
+}
+
+function toggle(bit) {
+  const btn = document.getElementById("btn" + Math.log2(bit) + 1);
+  const isActive = btn.classList.toggle("active");
+
+  if (isActive) {
+    state |= bit;
+  } else {
+    state &= ~bit;
+  }
+
+  sendButtons(state);
+}
+
+async function sendButtons(val) {
+  if (!binaryCharac) return;
+  try {
+    const data = new Uint8Array([val]);
+    await binaryCharac.writeValue(data);
+    document.getElementById("status").textContent = "Boutons : " + val;
+  } catch (error) {
+    alert("Erreur boutons : " + error);
   }
 }
 </script>
