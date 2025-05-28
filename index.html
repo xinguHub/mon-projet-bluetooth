@@ -1,11 +1,74 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Test Bluetooth ON/OFF</title>
+  <meta charset="utf-8">
+  <title>Contrôle ESP32 BLE</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2em;
+    }
+    button {
+      font-size: 1.2em;
+      margin: 0.5em;
+      padding: 0.5em 1.2em;
+      border-radius: 8px;
+    }
+    #status {
+      margin-top: 1em;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h1>Mon appli Bluetooth simple</h1>
-  <button onclick="alert('ON envoyé !')">ON</button>
-  <button onclick="alert('OFF envoyé !')">OFF</button>
+  <h1>Contrôle ESP32 via Bluetooth</h1>
+
+  <button onclick="connect()">🔌 Connecter ESP32</button><br><br>
+
+  <div id="buttons">
+    <button onclick="sendValue(0)">0</button>
+    <button onclick="sendValue(1)">1</button>
+    <button onclick="sendValue(2)">2</button>
+    <button onclick="sendValue(3)">3</button>
+    <button onclick="sendValue(4)">4</button>
+    <button onclick="sendValue(5)">5</button>
+    <button onclick="sendValue(6)">6</button>
+    <button onclick="sendValue(7)">7</button>
+  </div>
+
+  <p id="status">État : Déconnecté</p>
+
+  <script>
+    let device, characteristic;
+
+    async function connect() {
+      try {
+        device = await navigator.bluetooth.requestDevice({
+          filters: [{ services: ['12345678-1234-1234-1234-123456789abc'] }]
+        });
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
+        characteristic = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-1234567890ab');
+        document.getElementById("status").textContent = "État : Connecté à ESP32 ✅";
+      } catch (error) {
+        alert("Erreur de connexion : " + error);
+      }
+    }
+
+    async function sendValue(val) {
+      if (!characteristic) {
+        alert("Veuillez vous connecter d'abord.");
+        return;
+      }
+      try {
+        const data = new Uint8Array([val]);
+        await characteristic.writeValue(data);
+        document.getElementById("status").textContent = "Envoyé : " + val;
+      } catch (error) {
+        alert("Erreur à l'envoi : " + error);
+      }
+    }
+  </script>
 </body>
 </html>
