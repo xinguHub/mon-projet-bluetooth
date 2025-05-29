@@ -9,21 +9,11 @@
       text-align: center;
       padding: 2em;
     }
-    input[type=range] {
-      width: 80%;
-    }
     button {
       font-size: 1.2em;
       margin: 0.5em;
       padding: 0.5em 1.2em;
       border-radius: 8px;
-    }
-    .toggle {
-      background-color: #eee;
-    }
-    .toggle.active {
-      background-color : #4CAF50;
-      color: white;
     }
     #status {
       margin-top: 1em;
@@ -32,56 +22,53 @@
   </style>
 </head>
 <body>
+  <h1>Contrôle ESP32 via Bluetooth</h1>
 
-  <h1>Contrôle ESP32 via BLE</h1>
+  <button onclick="connect()">🔌 Connecter ESP32</button><br><br>
 
-  <button onclick="connect()">🔌 Connecter ESP32</button>
-
-  <h2>Slider (250–2500 ms)</h2>
-  <p>Valeur : <span id="sliderValue">250</span> ms</p>
-  <input type="range" id="slider" min="250" max="2500" step="50" value="250"
-         oninput="updateSlider(this.value)" onchange="sendSlider(this.value)">
-
-  <h2>Boutons ON/OFF (somme 0 à 7)</h2>
-  <div>
-    <button class="toggle" id="btn1" onclick="toggle(1)">Bouton 1</button>
-    <button class="toggle" id="btn2" onclick="toggle(2)">Bouton 2</button>
-    <button class="toggle" id="btn3" onclick="toggle(4)">Bouton 3</button>
+  <div id="buttons">
+    <button onclick="sendValue(0)">0</button>
+    <button onclick="sendValue(1)">1</button>
+    <button onclick="sendValue(2)">2</button>
+    <button onclick="sendValue(3)">3</button>
+    <button onclick="sendValue(4)">4</button>
+    <button onclick="sendValue(5)">5</button>
+    <button onclick="sendValue(6)">6</button>
+    <button onclick="sendValue(7)">7</button>
   </div>
 
   <p id="status">État : Déconnecté</p>
 
-<script>
-let device;
-let textCharac = null;
-let binaryCharac = null;
-let state = 0;
+  <script>
+    let device, characteristic;
 
-async function connect() {
-  try {
-    device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: ['12345678-1234-1234-1234-123456789abc'] }]
-    });
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
+    async function connect() {
+      try {
+        device = await navigator.bluetooth.requestDevice({
+          filters: [{ services: ['12345678-1234-1234-1234-123456789abc'] }]
+        });
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
+        characteristic = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-1234567890ab');
+        document.getElementById("status").textContent = "État : Connecté à ESP32 ✅";
+      } catch (error) {
+        alert("Erreur de connexion : " + error);
+      }
+    }
 
-    // Caractéristique pour le texte (slider)
-    textCharac = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-abcdef123456');
-    // Caractéristique pour les boutons (0 à 7)
-    binaryCharac = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-1234567890ab');
-
-    document.getElementById("status").textContent = "État : Connecté à ESP32 ✅";
-  } catch (error) {
-    alert("Erreur de connexion : " + error);
-  }
-}
-
-function updateSlider(val) {
-  document.getElementById("sliderValue").textContent = val;
-}
-
-async function sendSlider(val) {
-  if (!textCharac) return;
-  try {
-    const encoder = new TextEncoder();
-    await textCharac.writ
+    async function sendValue(val) {
+      if (!characteristic) {
+        alert("Veuillez vous connecter d'abord.");
+        return;
+      }
+      try {
+        const data = new Uint8Array([val]);
+        await characteristic.writeValue(data);
+        document.getElementById("status").textContent = "Envoyé : " + val;
+      } catch (error) {
+        alert("Erreur à l'envoi : " + error);
+      }
+    }
+  </script>
+</body>
+</html>
