@@ -9,7 +9,7 @@
       text-align: center;
       padding: 2em;
     }
-    button {
+    button, input[type=range] {
       font-size: 1.2em;
       margin: 0.5em;
       padding: 0.5em 1.2em;
@@ -26,6 +26,9 @@
       margin-top: 1em;
       font-weight: bold;
     }
+    .slider-container {
+      margin-top: 2em;
+    }
   </style>
 </head>
 <body>
@@ -39,10 +42,17 @@
     <button id="btn3" class="toggle" onclick="toggle(4, 'btn3')">Bouton 3</button>
   </div>
 
+  <div class="slider-container">
+    <label for="slider">Valeur : <span id="sliderValue">250</span> ms</label><br>
+    <input type="range" id="slider" min="250" max="2500" step="50" value="250" onchange="updateSlider(this.value)">
+  </div>
+
   <p id="status">État : Déconnecté</p>
 
   <script>
-    let device, characteristic;
+    let device;
+    let charControl = null;
+    let charSlider = null;
     let state = 0;
 
     async function connect() {
@@ -52,7 +62,13 @@
         });
         const server = await device.gatt.connect();
         const service = await server.getPrimaryService('12345678-1234-1234-1234-123456789abc');
-        characteristic = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-1234567890ab');
+
+        // Caractéristique pour les boutons (byte brut)
+        charControl = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-1234567890ab');
+
+        // Caractéristique pour le slider (texte)
+        charSlider = await service.getCharacteristic('abcd1234-1a2b-3c4d-5e6f-abcdef123456');
+
         document.getElementById("status").textContent = "État : Connecté à ESP32 ✅";
       } catch (error) {
         alert("Erreur de connexion : " + error);
@@ -73,16 +89,31 @@
     }
 
     async function sendByte(val) {
-      if (!characteristic) {
+      if (!charControl) {
         alert("Veuillez vous connecter d'abord.");
         return;
       }
       try {
         const data = new Uint8Array([val]);
-        await characteristic.writeValue(data);
-        document.getElementById("status").textContent = "Envoyé : " + val;
+        await charControl.writeValue(data);
+        document.getElementById("status").textContent = "Envoyé (byte) : " + val;
       } catch (error) {
-        alert("Erreur à l'envoi : " + error);
+        alert("Erreur à l'envoi du byte : " + error);
+      }
+    }
+
+    async function updateSlider(val) {
+      document.getElementById("sliderValue").textContent = val;
+      if (!charSlider) {
+        alert("Veuillez vous connecter d'abord.");
+        return;
+      }
+      try {
+        const text = new TextEncoder().encode(val.toString());
+        await charSlider.writeValue(text);
+        document.getElementById("status").textContent = "Envoyé (texte) : " + val;
+      } catch (error) {
+        alert("Erreur à l'envoi du texte : " + error);
       }
     }
   </script>
