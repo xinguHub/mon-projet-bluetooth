@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Contrôle ESP32 BLE - Chaîne texte</title>
+  <title>Contrôle ESP32 BLE</title>
   <style>
     body {
       font-family: sans-serif;
@@ -69,19 +69,18 @@
         state &= ~bit;
       }
 
-      sendTextValue(state);
+      sendByte(state);
     }
 
-    async function sendTextValue(val) {
+    async function sendByte(val) {
       if (!characteristic) {
         alert("Veuillez vous connecter d'abord.");
         return;
       }
       try {
-        const message = "x" + val.toString().padStart(2, '0'); // exemple : x07
-        const data = new TextEncoder().encode(message);
+        const data = new Uint8Array([val]);
         await characteristic.writeValue(data);
-        document.getElementById("status").textContent = "Envoyé : " + message;
+        document.getElementById("status").textContent = "Envoyé : " + val;
       } catch (error) {
         alert("Erreur à l'envoi : " + error);
       }
