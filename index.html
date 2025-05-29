@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Contrôle ESP32 BLE</title>
+  <title>Contrôle ESP32 BLE - Boutons ON/OFF</title>
   <style>
     body {
       font-family: sans-serif;
@@ -14,6 +14,13 @@
       margin: 0.5em;
       padding: 0.5em 1.2em;
       border-radius: 8px;
+    }
+    .toggle {
+      background-color: #eee;
+    }
+    .toggle.active {
+      background-color: #4CAF50;
+      color: white;
     }
     #status {
       margin-top: 1em;
@@ -27,20 +34,16 @@
   <button onclick="connect()">🔌 Connecter ESP32</button><br><br>
 
   <div id="buttons">
-    <button onclick="sendValue(0)">0</button>
-    <button onclick="sendValue(1)">1</button>
-    <button onclick="sendValue(2)">2</button>
-    <button onclick="sendValue(3)">3</button>
-    <button onclick="sendValue(4)">4</button>
-    <button onclick="sendValue(5)">5</button>
-    <button onclick="sendValue(6)">6</button>
-    <button onclick="sendValue(7)">7</button>
+    <button id="btn1" class="toggle" onclick="toggle(1)">Bouton 1</button>
+    <button id="btn2" class="toggle" onclick="toggle(2)">Bouton 2</button>
+    <button id="btn3" class="toggle" onclick="toggle(4)">Bouton 3</button>
   </div>
 
   <p id="status">État : Déconnecté</p>
 
   <script>
     let device, characteristic;
+    let state = 0;
 
     async function connect() {
       try {
@@ -54,6 +57,19 @@
       } catch (error) {
         alert("Erreur de connexion : " + error);
       }
+    }
+
+    function toggle(bit) {
+      const btn = document.getElementById("btn" + Math.log2(bit) + 1);
+      const isActive = btn.classList.toggle("active");
+
+      if (isActive) {
+        state |= bit;
+      } else {
+        state &= ~bit;
+      }
+
+      sendValue(state);
     }
 
     async function sendValue(val) {
