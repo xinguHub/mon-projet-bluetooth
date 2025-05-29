@@ -69,18 +69,19 @@
         state &= ~bit;
       }
 
-      sendValue(state);
+      sendTextValue(state);
     }
 
-    async function sendValue(val) {
+    async function sendTextValue(val) {
       if (!characteristic) {
         alert("Veuillez vous connecter d'abord.");
         return;
       }
       try {
-        const data = new Uint8Array([val]);
+        const message = "x" + val.toString().padStart(2, '0'); // Exemple : x07
+        const data = new TextEncoder().encode(message);
         await characteristic.writeValue(data);
-        document.getElementById("status").textContent = "Envoyé : " + val;
+        document.getElementById("status").textContent = "Envoyé : " + message;
       } catch (error) {
         alert("Erreur à l'envoi : " + error);
       }
